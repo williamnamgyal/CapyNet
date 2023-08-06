@@ -203,10 +203,17 @@ class sniffingThread(threading.Thread):
             packet_seq=""
             if packet.haslayer(IP):
                 if packet.haslayer(IP):
-                    packet_seq = str(packet[IP].sport) + " -> " + str(packet[IP].dport)
                     packet_src = packet[IP].src
                     packet_dst = packet[IP].dst
                     protocol_number = packet[IP].proto
+
+                    if packet.haslayer(TCP):
+                        packet_seq = str(packet[TCP].sport) + " -> " + str(packet[TCP].dport)
+                    elif packet.haslayer(UDP):
+                        packet_seq = str(packet[UDP].sport) + " -> " + str(packet[UDP].dport)
+                    else:
+                        packet_seq = "No sport/dport"
+
                     if packet.haslayer(Ether):
                         destination_mac = packet[Ether].dst
                         if destination_mac == "ff:ff:ff:ff:ff:ff":
@@ -225,7 +232,13 @@ class sniffingThread(threading.Thread):
                             packet_protocol="Unrecognized Protocol"
 
             elif packet.haslayer(IPv6):
-                packet_seq = str(packet[IPv6].sport) + " -> " + str(packet[IPv6].dport)
+                if packet.haslayer(TCP):
+                    packet_seq = str(packet[TCP].sport) + " -> " + str(packet[TCP].dport)
+                elif packet.haslayer(UDP):
+                    packet_seq = str(packet[UDP].sport) + " -> " + str(packet[UDP].dport)
+                else:
+                    packet_seq = "No sport/dport"
+
                 packet_src = packet[IPv6].src
                 packet_dst = packet[IPv6].dst
                 protocol_number = packet[IPv6].nh  # Protocol number for IPv6
@@ -376,10 +389,13 @@ def on_click_packet(e):
             # Ethernet Details
 
             # TCP Details
-            t_tcp = ToggledFrame(info_text_frame_area, text='Transmission Control Protocol', relief="raised", borderwidth=1)
-            t_tcp.pack(fill="x", expand=1, pady=2, padx=2, anchor="n")
-            t_tcp_sub_frame_text = ""  # Add details as needed
-            Label(t_tcp.sub_frame, text=t_tcp_sub_frame_text, justify="left").pack(side="left")
+            t2 = ToggledFrame(info_text_frame_area, text='Transmission Control Protocol', relief="raised", borderwidth=1)
+            t2.pack(fill="x", expand=1, pady=2, padx=2, anchor="n")
+            t2_sub_frame_text=""
+            field_names = [field.name for field in TCP.fields_desc]
+            for field_name in field_names:
+                t2_sub_frame_text+=field_name + ": " +str(getattr(packets_list_storage[val_No][IP], field_name)) + "\n"
+            Label(t2.sub_frame, text=t2_sub_frame_text, justify="left").pack(side="left")
 
             # TLSv1.2 Details
             t_tls = ToggledFrame(info_text_frame_area, text='Transport Layer Security v1.2', relief="raised", borderwidth=1)
@@ -435,7 +451,7 @@ def on_click_packet(e):
                 Label(t4.sub_frame, text=t4_sub_frame_text, justify="left").pack(side="left")
             #content for t2 here
         if packets_list_storage[val_No].haslayer(TCP) and (packets_list_storage[val_No][TCP].sport == 443 or packets_list_storage[val_No][TCP].dport == 443):
-            t_tls = ToggledFrame(t.sub_frame, text='Transport Layer Security v1.2', relief="raised", borderwidth=1)
+            t_tls = ToggledFrame(info_text_frame_area, text='Transport Layer Security v1.2', relief="raised", borderwidth=1)
             t_tls.pack(fill="x", expand=1, pady=2, padx=2, anchor="n")
             t_tls_sub_frame_text = "Port: " + str(packets_list_storage[val_No][TCP].sport) + " -> " + str(packets_list_storage[val_No][TCP].dport)
             Label(t_tls.sub_frame, text=t_tls_sub_frame_text, justify="left").pack(side="left")
